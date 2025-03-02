@@ -78,7 +78,8 @@ data_available <- data_clean %>%
     gdp_growth                  = `GDP growth (annual %)`,
     lfpr_total_15_64_milo        = `Labor force participation rate, total (% of total population ages 15-64) (modeled ILO estimate)`,
     self_employed_total         = `Self-employed, total (% of total employment) (modeled ILO estimate)`,
-    vulnerable_emp_total        = `Vulnerable employment, total (% of total employment) (modeled ILO estimate)`)
+    vulnerable_emp_total        = `Vulnerable employment, total (% of total employment) (modeled ILO estimate)`,
+    wage_workers_total          = `Wage and salaried workers, total (% of total employment) (modeled ILO estimate)`)
 
 ```
 
@@ -108,50 +109,57 @@ codebook <- tribble(
   "lfpr_total_15_64_milo",          "Labor force participation rate, total (% of total population ages 15-64) (modeled ILO estimate)",
   "self_employed_total",            "Self-employed, total (% of total employment) (modeled ILO estimate)",
   "vulnerable_emp_total",           "Vulnerable employment, total (% of total employment) (modeled ILO estimate)",
+  "wage_workers_total",             "Wage and salaried workers, total (% of total employment) (modeled ILO estimate)"
 )
 
 
 
 ```
 
-# Economic Growth and Labor Market Trends
+# Labor Market Trends and Economic Growth: Evidence from China, Uganda, and the U.S.
 
-## Understanding the Relationship Between Workforce Engagement, Economic Growth, and Employment Quality
-Economic growth and labor markets are closely linked, but job creation alone does not guarantee economic stability. While a growing economy can reduce unemployment and boost household consumption, the quality and security of jobs matter just as much as their quantity. This data story explores four key aspects of labor market dynamics: the relationship between labor force participation and GDP growth, sectoral employment shifts, the impact of workforce participation on consumption, and the stability of employment.
+## Examining Labor Force Participation, Sectoral Employment Shifts, Wage Employment, and Consumption Growth
+Understanding the dynamics of labor markets is crucial for shaping economic policy and fostering sustainable growth. This analysis explores how labor force participation, employment distribution across sectors, and the rise of wage employment impact economic growth and consumption patterns. By comparing trends in China, Uganda, and the United States, the study examines whether increased employment in the service sector leads to more wage jobs and whether more wage workers drive higher household consumption. The findings provide insights into how economies transition and what factors determine whether labor market shifts translate into broader economic prosperity.
+
+## Research Question
+How do labor market trends—including labor force participation, sectoral employment shifts, and wage employment—affect economic growth and consumption across different economies?
 
 ## 1. Labor Force Participation and Economic Growth Over Time
 A strong labor force is essential for economic growth. However, a high labor force participation rate (LFPR) does not always mean economic prosperity—growth depends on job quality and productivity.
 
 ```{r}
 ggplot(data_available_clean, aes(x = year, group = country_name, color = country_name)) +
-  geom_line(aes(y = lfpr_total_15_64_milo), size = 1) +
+  geom_line(aes(y = lfpr_total_15_64_milo, linetype = "Labor Force Participation"), size = 1) +
   geom_point(aes(y = lfpr_total_15_64_milo), size = 2) +
-  geom_line(aes(y = gdp_growth * 5), size = 1, linetype = "dashed") +
+  geom_line(aes(y = gdp_growth * 5, linetype = "GDP Growth"), size = 1) +
   geom_point(aes(y = gdp_growth * 5), size = 2) +
-  scale_x_continuous(breaks = seq(min(data_available_clean$year), max(data_available_clean$year), by = 5)) +
+  scale_x_continuous(breaks = seq(min(data_available_clean$year), max(data_available_clean$year), by = 2)) +
   scale_y_continuous(sec.axis = sec_axis(~./5, name = "GDP Growth (%)")) +
+  scale_linetype_manual(values = c("Labor Force Participation" = "solid", "GDP Growth" = "dashed")) +
   labs(
     title = "Labor Force Participation vs GDP Growth",
     subtitle = "Comparing Workforce Engagement and Economic Growth Across Countries",
     x = "Year", y = "Labor Force Participation (%)",
     color = "Country",
-    caption = "Source: World Bank Data"
+    linetype = "Indicator",  # This makes sure the legend correctly labels the lines
+    caption = "Source: The World Bank, World Development Indicators (2025)."
   ) +
   theme_minimal() +
   theme(
-        panel.grid = element_blank(),
-        plot.title = element_text(size = 14, face = "bold"),  
-        plot.subtitle = element_text(size = 12, face = "italic"),  
-        axis.title.x = element_text(size = 12),  
-        axis.title.y = element_text(size = 12),  
-        axis.text.x = element_text(size = 12),  
-        axis.text.y = element_text(size = 12),
-        legend.position = "bottom",
-        axis.line = element_line(color = "black")  # Ensures both x-axis and y-axis lines are visible
-  )
-
-
+    text = element_text(family = "serif"),
+    panel.grid = element_blank(),
+    plot.title = element_text(size = 14, face = "bold"),  
+    plot.subtitle = element_text(size = 12, face = "italic"),  
+    axis.title.x = element_text(size = 12),  
+    axis.title.y = element_text(size = 12),  
+    axis.text.x = element_text(size = 12),  
+    axis.text.y = element_text(size = 12),
+    legend.position = "bottom",
+    axis.line = element_line(color = "black"),  # Ensures both x-axis and y-axis lines are visible
+    legend.key.width = unit(0.8,"cm")
+)
 ```
+
 The relationship between labor force participation and GDP growth varies significantly across economies. The United States shows a gradual decline in labor force participation, with GDP growth fluctuating due to economic crises such as the 2008 financial crisis and COVID-19 in 2020. China initially had high labor force participation alongside strong GDP growth, but recent years show a slowdown in economic expansion, reflecting a transition to a more service-based economy. Uganda, on the other hand, maintains high but volatile labor force participation, with GDP growth following an inconsistent pattern due to economic instability and external shocks.
 
 
@@ -172,98 +180,123 @@ ggplot(data_available_clean, aes(x = year)) +
     caption = "Source: World Bank Data"
   ) +
   scale_fill_brewer(palette = "Set2") +  # Improved color scheme for better distinction
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  # Format as percentage if applicable
-  theme_minimal() +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  
+
+    theme_minimal() +
   theme(
-        panel.grid = element_blank(),
-        plot.title = element_text(size = 14, face = "bold"),  
-        plot.subtitle = element_text(size = 12, face = "italic"),  
-        axis.title.x = element_text(size = 12),  
-        axis.title.y = element_text(size = 12),  
-        axis.text.x = element_text(size = 12),  
-        axis.text.y = element_text(size = 12),
-        legend.position = "bottom",
-        axis.line = element_line(color = "black")
-  )
+    text = element_text(family = "serif"),
+    panel.grid = element_blank(),
+    plot.title = element_text(size = 14, face = "bold"),  
+    plot.subtitle = element_text(size = 12, face = "italic"),  
+    axis.title.x = element_text(size = 12),  
+    axis.title.y = element_text(size = 12),  
+    axis.text.x = element_text(size = 12),  
+    axis.text.y = element_text(size = 12),
+    legend.position = "bottom",
+    axis.line = element_line(color = "black"),  # Ensures both x-axis and y-axis lines are visible
+    legend.key.width = unit(0.8,"cm")
+)
 
 
 ```
 Employment patterns reveal structural transformations in different economies. China’s workforce is shifting away from agriculture, with a growing share of employment in industry and services, signifying industrialization. Uganda’s labor market remains heavily dependent on agriculture, with only slow growth in industry and services, indicating limited economic diversification. In contrast, the United States is dominated by the service sector, with minimal employment in agriculture and industry, reflecting the maturity of a developed economy.
 
-## 3. The Link Between Workforce Participation and Consumption Growth
-A growing labor force should lead to higher household spending, which fuels economic activity. However, if people are employed in low-wage or unstable jobs, consumption may not increase significantly.
+
+## 3. As Employment in Services Increases, Wage Workers Rise.
 
 ```{r}
-ggplot(data_available_clean, aes(x = lfpr_total_15_64_milo, y = final_cons_growth, color = country_name, size = gdp_growth)) +
-  geom_point(alpha = 0.7) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-  facet_wrap(~country_name) +
-  scale_x_continuous(labels = scales::percent_format(scale = 1)) +  # Formats LFPR as a percentage
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  # Formats consumption growth as a percentage
+
+ggplot(data_available_clean, aes(x = empl_services, y = wage_workers_total, color = country_name)) +
+  geom_point(size = 3, alpha = 0.7) +  # Scatter points with transparency
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "black") +  # Trend line per country
+  facet_wrap(~country_name, scales = "free") +  # Separate plots for each country
   labs(
-    title = "Labor Force Participation vs. Consumption Growth",
-    subtitle = "Analyzing Workforce Engagement and Economic Demand",
-    x = "Labor Force Participation Rate (%)",  
-    y = "Final Consumption Growth (%)",        
+    title = "As Employment in Services Increases, Wage Workers Rise",
+    subtitle = "Comparing Growth in Service Sector Jobs and Wage Employment",
+    x = "Employment in Services (% of Total Employment)", 
+    y = "Wage Workers (% of Total Employment)",
     color = "Country",
-    size = "GDP Growth",
     caption = "Source: World Bank Data"
   ) +
-  theme_minimal() +
+    theme_minimal() +
   theme(
-    panel.grid = element_blank(),   # Removes internal gridlines for a cleaner look
+    text = element_text(family = "serif"),
+    panel.grid = element_blank(),
     plot.title = element_text(size = 14, face = "bold"),  
     plot.subtitle = element_text(size = 12, face = "italic"),  
-    axis.title.x = element_text(size = 12, face = "bold"),  
-    axis.title.y = element_text(size = 12, face = "bold"),  
+    axis.title.x = element_text(size = 12),  
+    axis.title.y = element_text(size = 12),  
     axis.text.x = element_text(size = 12),  
     axis.text.y = element_text(size = 12),
     legend.position = "bottom",
-    axis.line = element_line(color = "black", size = 0.8)  # Ensures both x-axis and y-axis lines are visible
-  )
-
-
+    axis.line = element_line(color = "black"),  
+    legend.key.width = unit(0.8,"cm")
+)
 
 ```
-Higher workforce participation does not always translate into strong consumer spending. In China, despite a gradual decline in labor force participation, consumption growth remains stable, suggesting that higher wages and economic development compensate for lower workforce engagement. Uganda, however, maintains a high labor force participation rate, yet its consumption growth is inconsistent, implying that low wages and job insecurity limit disposable income. In the United States, stable labor force participation coincides with moderate consumption growth, reflecting a steady labor market with stable incomes.
 
-## 4. Job Quality: Are People in Stable or Vulnerable Employment?
-Economic growth should lead to stable, well-paying jobs, but in some cases, growth is driven by self-employment and vulnerable jobs, which can indicate economic insecurity.
+
+The graph illustrates how increasing employment in the service sector correlates with the rise of wage jobs across China, Uganda, and the United States. In China, steady growth in service employment has been accompanied by a consistent rise in wage jobs, reflecting a structured transition to a more formal labor market. In Uganda, while service employment has increased, wage job trends have been unstable, indicating that many service roles remain informal or low-paying. In the United States, where the economy is predominantly service-based, wage employment remains consistently high due to strong labor regulations and the formal nature of most service jobs.
+
+
+## 4. Wage Employment vs. Household Consumption Growth
 
 ```{r}
-# Reshape data to long format (if not already in this format)
-data_long <- data_available_clean %>%
-  pivot_longer(cols = c(self_employed_total, vulnerable_emp_total), 
-               names_to = "Employment Type", values_to = "Percentage")
+library(ggplot2)
+library(dplyr)
+library(tidyr)
 
-# Create the ggplot
-ggplot(data_long, aes(x = factor(year), y = Percentage, fill = `Employment Type`)) +  
-  geom_col(position = position_dodge(width = 0.8), width = 0.6, alpha = 0.8) +
+# Ensure data is correctly reshaped
+data_long <- data_available_clean %>%
+  select(year, country_name, wage_workers_total, final_cons_growth) %>%
+  pivot_longer(cols = c(wage_workers_total, final_cons_growth),
+               names_to = "Metric",
+               values_to = "Value")  # Ensure this column is correctly created
+
+# Improve labels
+data_long$Metric <- recode(data_long$Metric,
+                           "wage_workers_total" = "Wage Workers (% of Total Employment)",
+                           "final_cons_growth" = "Final Consumption Growth (%)")
+
+# Check the structure of data to ensure 'Value' exists
+print(head(data_long))
+
+# Create bar graph
+ggplot(data_long, aes(x = factor(year), y = Value, fill = Metric)) +  # Convert year to factor for discrete x-axis
+  geom_col(position = "dodge", alpha = 0.8) +
+  facet_wrap(~country_name) +  # Create separate plots per country
+  scale_fill_manual(values = c("Wage Workers (% of Total Employment)" = "lightblue",
+                               "Final Consumption Growth (%)" = "gold")) +
   labs(
-    title = "Self-Employment vs. Vulnerable Employment Trends",
-    subtitle = "Comparing Job Quality Over Time",
-    x = "Year", 
-    y = "Percentage of Workforce",
-    fill = "Employment Type",
+    title = "Wage Employment vs. Consumption Growth Over Time",
+    subtitle = "Are Wage Jobs Driving Higher Consumption?",
+    x = "Year",
+    y = "Percentage (%)",
+    fill = "Indicator",
     caption = "Source: World Bank Data"
   ) +
-  scale_fill_manual(values = c("darkgreen", "gold")) +  # Custom colors
-  theme_minimal() +
+    theme_minimal() +
   theme(
-    panel.grid = element_blank(),  # Remove background grid for clarity
+    text = element_text(family = "serif"),
+    panel.grid = element_blank(),
     plot.title = element_text(size = 14, face = "bold"),  
     plot.subtitle = element_text(size = 12, face = "italic"),  
-    axis.title.x = element_text(size = 12, face = "bold"),  
-    axis.title.y = element_text(size = 12, face = "bold"),  
-    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),  
+    axis.title.x = element_text(size = 12),  
+    axis.title.y = element_text(size = 12),  
+    axis.text.x = element_text(size = 12),  
     axis.text.y = element_text(size = 12),
     legend.position = "bottom",
-    axis.line = element_line(color = "black", size = 0.8)  # Ensures both x-axis and y-axis lines are visible
-  )
+    axis.line = element_line(color = "black"),  # Ensures both x-axis and y-axis lines are visible
+    legend.key.width = unit(0.8,"cm")
+)
+
 
 ```
-Job quality plays a crucial role in determining economic security and resilience. China shows a steady decline in self-employment and vulnerable jobs, indicating a transition to more stable, formal employment. Uganda, however, continues to experience high levels of both self-employment and vulnerable work, reflecting limited access to secure jobs and persistent informal labor. In contrast, the United States has a low share of vulnerable employment, highlighting a well-regulated labor market with strong social protections.
-
+The graph explores whether an increase in wage employment leads to higher household consumption across China, Uganda, and the United States. In China, wage employment has grown steadily, but consumption growth remains moderate, suggesting that rising wages or job stability may be necessary to boost spending. In Uganda, wage employment and consumption growth are both volatile, indicating that many jobs remain low-paying or informal, limiting their impact on household spending. In the United States, where wage employment is consistently high, consumption growth remains stable, reflecting a strong link between formal employment, financial security, and sustained consumer demand.
 
 ## Policy recommendation
-Ensuring that economic growth leads to stable and productive labor force participation requires policies that reduce labor market informality and support workforce re-entry programs, particularly for vulnerable groups. Sectoral diversification is essential, with developing economies investing in agro-industrialization and manufacturing, while advanced economies focus on innovation and digital transformation to sustain employment growth. Higher labor force participation must translate into rising incomes and stable employment by addressing wage stagnation in order to support sustainable consumption growth. Finally, reducing self-employment and vulnerable work through labor market formalization, employer incentives, and stronger protections for gig and contract workers will ensure that economic expansion creates quality jobs and long-term economic resilience.
+
+Whereas employment in services increases wage workers, it may not necessarily lead to higher household consumption, as shown across the four graphs. In China and Uganda, rising service sector employment has not consistently translated into higher consumption, suggesting that low wages and job instability limit spending power. In contrast, the United States demonstrates that stable wage employment supports sustained consumption growth, highlighting the importance of job quality and fair wages. Therefore, policymakers should ensure wage growth aligns with productivity, strengthen labor protections, and implement policies that boost disposable income to drive household consumption and economic growth.
+
+
+
