@@ -1,0 +1,269 @@
+---
+title: "Data Science for Public Policy"
+subtitle: "Assignment 04"
+author: "Caroline Atuhaire - ca975"
+execute:
+  warning: false
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-location: left
+---
+
+
+```{r}
+
+library(readxl)
+library(writexl)
+library(tidyverse)
+library(tibble)
+
+```
+
+# Transfer the Data Format
+
+```{r}
+# Read Original File and Assign it to "data" 
+
+data <- read_excel("data/0_OriginData_World_Development_Indicators.xlsx")
+
+# Pivot longer to convert year columns into a "Year" column
+
+data_long <- data |>
+  pivot_longer(
+    cols = starts_with("20"), 
+    # Select all year columns (2001-2023)
+    names_to = "Year",          
+    # Move column names to "Year"
+    values_to = "Value"
+    # Store data values in "Value"
+    )        
+
+# Drop NAs contained by these cols
+
+data_long <- data_long |>
+  drop_na(`Country Name`, `Country Code`, `Series Code`, `Series Name`)
+
+# Convert Year column to numeric
+
+data_long$Year <- as.numeric(str_extract(data_long$Year, "\\d+"))
+
+# Pivot wider to make Series Name values into separate columns
+
+data_clean <- data_long |>
+  select(-"Series Code") |>
+  # delete the "Series Code" column
+  pivot_wider(names_from = "Series Name", 
+              values_from = "Value")
+
+```
+
+Here, we delete the "Series Code" column, because all the values in it have corresponding value in column "Series Name". If we don't delete it, all values of the variables would be misaligned and lots of blank rows when pivot_wider using "Series Name".
+
+
+## Select and Rename Data
+
+```{r}
+# Define selected variables
+data_available <- data_clean %>%
+  select(
+    country_name                = `Country Name`,
+    country_code                = `Country Code`,
+    year                        = `Year`,
+    empl_agri                 = `Employment in agriculture (% of total employment) (modeled ILO estimate)`,
+    empl_industry             = `Employment in industry (% of total employment) (modeled ILO estimate)`,
+    empl_services             = `Employment in services (% of total employment) (modeled ILO estimate)`,
+    final_cons_growth           = `Final consumption expenditure (annual % growth)`,
+    gdp_growth                  = `GDP growth (annual %)`,
+    lfpr_total_15_64_milo        = `Labor force participation rate, total (% of total population ages 15-64) (modeled ILO estimate)`,
+    self_employed_total         = `Self-employed, total (% of total employment) (modeled ILO estimate)`,
+    vulnerable_emp_total        = `Vulnerable employment, total (% of total employment) (modeled ILO estimate)`)
+
+```
+
+Use **glimpse(data_available)** to see our new dataset. 
+
+```{r}
+# Mutate the chr into numeric
+data_available_clean <- data_available |> 
+  mutate(across(-c(country_name, country_code, year), as.numeric))
+
+```
+Create Codebook
+
+```{r}
+
+codebook <- tribble(
+  ~new_variable,                    ~original_variable,                                                    
+  "country_name",                   "Country Name",
+  "country_code",                   "Country Code",
+  "year",                           "Year",
+  "empl_agri",                      "Employment in agriculture (% of total employment) (modeled ILO estimate)",
+  "empl_industry",                  "Employment in industry (% of total employment) (modeled ILO estimate)",
+  "empl_services",                  "Employment in services (% of total employment) (modeled ILO estimate)",
+  "final_cons_growth",              "Final consumption expenditure (annual % growth)",
+  "gdp_growth",                     "GDP growth (annual %)",
+  "households_cons_growth",         "Households and NPISHs Final consumption expenditure (annual % growth)",
+  "lfpr_total_15_64_milo",          "Labor force participation rate, total (% of total population ages 15-64) (modeled ILO estimate)",
+  "self_employed_total",            "Self-employed, total (% of total employment) (modeled ILO estimate)",
+  "vulnerable_emp_total",           "Vulnerable employment, total (% of total employment) (modeled ILO estimate)",
+)
+
+
+
+```
+
+# Economic Growth and Labor Market Trends
+
+## Understanding the Relationship Between Workforce Engagement, Economic Growth, and Employment Quality
+Economic growth and labor markets are closely linked, but job creation alone does not guarantee economic stability. While a growing economy can reduce unemployment and boost household consumption, the quality and security of jobs matter just as much as their quantity. This data story explores four key aspects of labor market dynamics: the relationship between labor force participation and GDP growth, sectoral employment shifts, the impact of workforce participation on consumption, and the stability of employment.
+
+## 1. Labor Force Participation and Economic Growth Over Time
+A strong labor force is essential for economic growth. However, a high labor force participation rate (LFPR) does not always mean economic prosperity—growth depends on job quality and productivity.
+
+```{r}
+ggplot(data_available_clean, aes(x = year, group = country_name, color = country_name)) +
+  geom_line(aes(y = lfpr_total_15_64_milo), size = 1) +
+  geom_point(aes(y = lfpr_total_15_64_milo), size = 2) +
+  geom_line(aes(y = gdp_growth * 5), size = 1, linetype = "dashed") +
+  geom_point(aes(y = gdp_growth * 5), size = 2) +
+  scale_x_continuous(breaks = seq(min(data_available_clean$year), max(data_available_clean$year), by = 5)) +
+  scale_y_continuous(sec.axis = sec_axis(~./5, name = "GDP Growth (%)")) +
+  labs(
+    title = "Labor Force Participation vs GDP Growth",
+    subtitle = "Comparing Workforce Engagement and Economic Growth Across Countries",
+    x = "Year", y = "Labor Force Participation (%)",
+    color = "Country",
+    caption = "Source: World Bank Data"
+  ) +
+  theme_minimal() +
+  theme(
+        panel.grid = element_blank(),
+        plot.title = element_text(size = 14, face = "bold"),  
+        plot.subtitle = element_text(size = 12, face = "italic"),  
+        axis.title.x = element_text(size = 12),  
+        axis.title.y = element_text(size = 12),  
+        axis.text.x = element_text(size = 12),  
+        axis.text.y = element_text(size = 12),
+        legend.position = "bottom",
+        axis.line = element_line(color = "black")  # Ensures both x-axis and y-axis lines are visible
+  )
+
+
+```
+The relationship between labor force participation and GDP growth varies significantly across economies. The United States shows a gradual decline in labor force participation, with GDP growth fluctuating due to economic crises such as the 2008 financial crisis and COVID-19 in 2020. China initially had high labor force participation alongside strong GDP growth, but recent years show a slowdown in economic expansion, reflecting a transition to a more service-based economy. Uganda, on the other hand, maintains high but volatile labor force participation, with GDP growth following an inconsistent pattern due to economic instability and external shocks.
+
+
+## 2. Employment Shifts Across Sectors
+Economic development is often marked by a transition from agriculture to industry and services. A growing economy should see a decline in agricultural jobs and an increase in industrial and service employment.
+
+```{r}
+ggplot(data_available_clean, aes(x = year)) +
+  geom_area(aes(y = empl_agri, fill = "Agriculture"), alpha = 0.6, position = "stack") +
+  geom_area(aes(y = empl_industry, fill = "Industry"), alpha = 0.6, position = "stack") +
+  geom_area(aes(y = empl_services, fill = "Services"), alpha = 0.6, position = "stack") +
+  facet_wrap(~country_name) +
+  labs(
+    title = "Employment Distribution by Sector",
+    subtitle = "Tracking the Shift in Employment Across Agriculture, Industry, and Services",
+    x = "Year", y = "Employment Share (%)",
+    fill = "Sector",
+    caption = "Source: World Bank Data"
+  ) +
+  scale_fill_brewer(palette = "Set2") +  # Improved color scheme for better distinction
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  # Format as percentage if applicable
+  theme_minimal() +
+  theme(
+        panel.grid = element_blank(),
+        plot.title = element_text(size = 14, face = "bold"),  
+        plot.subtitle = element_text(size = 12, face = "italic"),  
+        axis.title.x = element_text(size = 12),  
+        axis.title.y = element_text(size = 12),  
+        axis.text.x = element_text(size = 12),  
+        axis.text.y = element_text(size = 12),
+        legend.position = "bottom",
+        axis.line = element_line(color = "black")
+  )
+
+
+```
+Employment patterns reveal structural transformations in different economies. China’s workforce is shifting away from agriculture, with a growing share of employment in industry and services, signifying industrialization. Uganda’s labor market remains heavily dependent on agriculture, with only slow growth in industry and services, indicating limited economic diversification. In contrast, the United States is dominated by the service sector, with minimal employment in agriculture and industry, reflecting the maturity of a developed economy.
+
+## 3. The Link Between Workforce Participation and Consumption Growth
+A growing labor force should lead to higher household spending, which fuels economic activity. However, if people are employed in low-wage or unstable jobs, consumption may not increase significantly.
+
+```{r}
+ggplot(data_available_clean, aes(x = lfpr_total_15_64_milo, y = final_cons_growth, color = country_name, size = gdp_growth)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+  facet_wrap(~country_name) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +  # Formats LFPR as a percentage
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  # Formats consumption growth as a percentage
+  labs(
+    title = "Labor Force Participation vs. Consumption Growth",
+    subtitle = "Analyzing Workforce Engagement and Economic Demand",
+    x = "Labor Force Participation Rate (%)",  
+    y = "Final Consumption Growth (%)",        
+    color = "Country",
+    size = "GDP Growth",
+    caption = "Source: World Bank Data"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),   # Removes internal gridlines for a cleaner look
+    plot.title = element_text(size = 14, face = "bold"),  
+    plot.subtitle = element_text(size = 12, face = "italic"),  
+    axis.title.x = element_text(size = 12, face = "bold"),  
+    axis.title.y = element_text(size = 12, face = "bold"),  
+    axis.text.x = element_text(size = 12),  
+    axis.text.y = element_text(size = 12),
+    legend.position = "bottom",
+    axis.line = element_line(color = "black", size = 0.8)  # Ensures both x-axis and y-axis lines are visible
+  )
+
+
+
+```
+Higher workforce participation does not always translate into strong consumer spending. In China, despite a gradual decline in labor force participation, consumption growth remains stable, suggesting that higher wages and economic development compensate for lower workforce engagement. Uganda, however, maintains a high labor force participation rate, yet its consumption growth is inconsistent, implying that low wages and job insecurity limit disposable income. In the United States, stable labor force participation coincides with moderate consumption growth, reflecting a steady labor market with stable incomes.
+
+## 4. Job Quality: Are People in Stable or Vulnerable Employment?
+Economic growth should lead to stable, well-paying jobs, but in some cases, growth is driven by self-employment and vulnerable jobs, which can indicate economic insecurity.
+
+```{r}
+# Reshape data to long format (if not already in this format)
+data_long <- data_available_clean %>%
+  pivot_longer(cols = c(self_employed_total, vulnerable_emp_total), 
+               names_to = "Employment Type", values_to = "Percentage")
+
+# Create the ggplot
+ggplot(data_long, aes(x = factor(year), y = Percentage, fill = `Employment Type`)) +  
+  geom_col(position = position_dodge(width = 0.8), width = 0.6, alpha = 0.8) +
+  labs(
+    title = "Self-Employment vs. Vulnerable Employment Trends",
+    subtitle = "Comparing Job Quality Over Time",
+    x = "Year", 
+    y = "Percentage of Workforce",
+    fill = "Employment Type",
+    caption = "Source: World Bank Data"
+  ) +
+  scale_fill_manual(values = c("darkgreen", "gold")) +  # Custom colors
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),  # Remove background grid for clarity
+    plot.title = element_text(size = 14, face = "bold"),  
+    plot.subtitle = element_text(size = 12, face = "italic"),  
+    axis.title.x = element_text(size = 12, face = "bold"),  
+    axis.title.y = element_text(size = 12, face = "bold"),  
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),  
+    axis.text.y = element_text(size = 12),
+    legend.position = "bottom",
+    axis.line = element_line(color = "black", size = 0.8)  # Ensures both x-axis and y-axis lines are visible
+  )
+
+```
+Job quality plays a crucial role in determining economic security and resilience. China shows a steady decline in self-employment and vulnerable jobs, indicating a transition to more stable, formal employment. Uganda, however, continues to experience high levels of both self-employment and vulnerable work, reflecting limited access to secure jobs and persistent informal labor. In contrast, the United States has a low share of vulnerable employment, highlighting a well-regulated labor market with strong social protections.
+
+
+## Policy recommendation
+Ensuring that economic growth leads to stable and productive labor force participation requires policies that reduce labor market informality and support workforce re-entry programs, particularly for vulnerable groups. Sectoral diversification is essential, with developing economies investing in agro-industrialization and manufacturing, while advanced economies focus on innovation and digital transformation to sustain employment growth. Higher labor force participation must translate into rising incomes and stable employment by addressing wage stagnation in order to support sustainable consumption growth. Finally, reducing self-employment and vulnerable work through labor market formalization, employer incentives, and stronger protections for gig and contract workers will ensure that economic expansion creates quality jobs and long-term economic resilience.
