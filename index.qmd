@@ -116,32 +116,27 @@ codebook <- tribble(
 
 ```
 
-# Labor Market Trends and Economic Growth: Evidence from China, Uganda, and the U.S.
+# Labor Market Transitions and Economic Growth: How Employment Shifts Influence Wage Jobs and Consumption
 
-## Examining Labor Force Participation, Sectoral Employment Shifts, Wage Employment, and Consumption Growth
-Understanding the dynamics of labor markets is crucial for shaping economic policy and fostering sustainable growth. This analysis explores how labor force participation, employment distribution across sectors, and the rise of wage employment impact economic growth and consumption patterns. By comparing trends in China, Uganda, and the United States, the study examines whether increased employment in the service sector leads to more wage jobs and whether more wage workers drive higher household consumption. The findings provide insights into how economies transition and what factors determine whether labor market shifts translate into broader economic prosperity.
+How economies distribute employment across sectors plays a vital role in shaping economic growth and household income. This study examines whether shifting employment from agriculture to services leads to more formal wage jobs and whether an increase in wage workers stimulates household consumption. Using data from China, Uganda, and the United States, the analysis explores whether these labor market trends support economic prosperity or reinforce inequalities. The findings offer insights into the factors that determine whether employment shifts lead to sustained economic growth.
 
 ## Research Question
-How do labor market trends—including labor force participation, sectoral employment shifts, and wage employment—affect economic growth and consumption across different economies?
+How do sectoral employment shifts and the rise of wage jobs influence economic growth and household consumption in different economies?
 
 ## 1. Labor Force Participation and Economic Growth Over Time
-A strong labor force is essential for economic growth. However, a high labor force participation rate (LFPR) does not always mean economic prosperity—growth depends on job quality and productivity.
+Labor force participation serves as a fundamental indicator of economic engagement, but understanding how workers are distributed across industries is crucial for assessing the broader structure and stability of a labor market.
 
 ```{r}
 ggplot(data_available_clean, aes(x = year, group = country_name, color = country_name)) +
-  geom_line(aes(y = lfpr_total_15_64_milo, linetype = "Labor Force Participation"), size = 1) +
+  geom_line(aes(y = lfpr_total_15_64_milo), size = 1) +
   geom_point(aes(y = lfpr_total_15_64_milo), size = 2) +
-  geom_line(aes(y = gdp_growth * 5, linetype = "GDP Growth"), size = 1) +
-  geom_point(aes(y = gdp_growth * 5), size = 2) +
   scale_x_continuous(breaks = seq(min(data_available_clean$year), max(data_available_clean$year), by = 2)) +
-  scale_y_continuous(sec.axis = sec_axis(~./5, name = "GDP Growth (%)")) +
-  scale_linetype_manual(values = c("Labor Force Participation" = "solid", "GDP Growth" = "dashed")) +
   labs(
-    title = "Labor Force Participation vs GDP Growth",
-    subtitle = "Comparing Workforce Engagement and Economic Growth Across Countries",
-    x = "Year", y = "Labor Force Participation (%)",
+    title = "Labor Force Participation Trends",
+    subtitle = "Comparing Workforce Engagement Across Countries",
+    x = "Year", 
+    y = "Labor Force Participation (%)",
     color = "Country",
-    linetype = "Indicator",  # This makes sure the legend correctly labels the lines
     caption = "Source: The World Bank, World Development Indicators (2025)."
   ) +
   theme_minimal() +
@@ -154,55 +149,62 @@ ggplot(data_available_clean, aes(x = year, group = country_name, color = country
     axis.title.y = element_text(size = 12),  
     axis.text.x = element_text(size = 12),  
     axis.text.y = element_text(size = 12),
-    legend.position = "bottom",
-    axis.line = element_line(color = "black"),  # Ensures both x-axis and y-axis lines are visible
-    legend.key.width = unit(0.8,"cm")
+    legend.position = "right",
+    axis.line = element_line(color="black")
 )
 ```
 
-The relationship between labor force participation and GDP growth varies significantly across economies. The United States shows a gradual decline in labor force participation, with GDP growth fluctuating due to economic crises such as the 2008 financial crisis and COVID-19 in 2020. China initially had high labor force participation alongside strong GDP growth, but recent years show a slowdown in economic expansion, reflecting a transition to a more service-based economy. Uganda, on the other hand, maintains high but volatile labor force participation, with GDP growth following an inconsistent pattern due to economic instability and external shocks.
+The relationship between labor force participation and GDP growth varies across economies. The United States shows a gradual decline in labor force participation until around 2016, followed by a slight upward trend. China’s participation rate steadily decreases throughout the period, maintaining a consistent downward trajectory. Uganda exhibits extreme fluctuations, with sharp increases and declines, particularly after 2010, indicating significant variability in workforce engagement.
 
 
-## 2. Employment Shifts Across Sectors
-Economic development is often marked by a transition from agriculture to industry and services. A growing economy should see a decline in agricultural jobs and an increase in industrial and service employment.
+## 2. The Structure of Labor Force Participation: Employment Structures Accross Different Sectors 
+
+While overall labor force participation reflects who is working, analyzing which sectors—agriculture, industry, or services—are driving employment provides deeper insight into the extent of economic transformation and industrialization
 
 ```{r}
-ggplot(data_available_clean, aes(x = year)) +
-  geom_area(aes(y = empl_agri, fill = "Agriculture"), alpha = 0.6, position = "stack") +
-  geom_area(aes(y = empl_industry, fill = "Industry"), alpha = 0.6, position = "stack") +
-  geom_area(aes(y = empl_services, fill = "Services"), alpha = 0.6, position = "stack") +
+data_available_clean |>
+  mutate(total_employment = empl_agri + empl_industry + empl_services) |>
+  pivot_longer(cols = c(empl_agri, empl_industry, empl_services),
+               names_to = "sector",
+               values_to = "employment_rate") |>
+  mutate(employment_share = employment_rate / total_employment * 100) |>
+  ggplot(aes(x = year, y = employment_share, fill = sector)) +
+  geom_area(alpha = 0.7) + 
   facet_wrap(~country_name) +
   labs(
     title = "Employment Distribution by Sector",
     subtitle = "Tracking the Shift in Employment Across Agriculture, Industry, and Services",
     x = "Year", y = "Employment Share (%)",
     fill = "Sector",
-    caption = "Source: World Bank Data"
+    caption = "Source: The World Bank, World Development Indicators (2025)."
   ) +
-  scale_fill_brewer(palette = "Set2") +  # Improved color scheme for better distinction
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  
-
-    theme_minimal() +
+  scale_fill_manual(values = c("empl_agri" = "#66c2a5", 
+                               "empl_industry" = "#fc8d62", 
+                               "empl_services" = "#8da0cb"),
+                    labels = c("Agriculture", "Industry", "Services")) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
   theme(
     text = element_text(family = "serif"),
     panel.grid = element_blank(),
     plot.title = element_text(size = 14, face = "bold"),  
     plot.subtitle = element_text(size = 12, face = "italic"),  
     axis.title.x = element_text(size = 12),  
-    axis.title.y = element_text(size = 12),  
+    axis.title.y = element_text(size = 12),    
     axis.text.x = element_text(size = 12),  
     axis.text.y = element_text(size = 12),
     legend.position = "bottom",
-    axis.line = element_line(color = "black"),  # Ensures both x-axis and y-axis lines are visible
+    axis.line = element_line(color = "black"),
     legend.key.width = unit(0.8,"cm")
 )
-
-
 ```
-Employment patterns reveal structural transformations in different economies. China’s workforce is shifting away from agriculture, with a growing share of employment in industry and services, signifying industrialization. Uganda’s labor market remains heavily dependent on agriculture, with only slow growth in industry and services, indicating limited economic diversification. In contrast, the United States is dominated by the service sector, with minimal employment in agriculture and industry, reflecting the maturity of a developed economy.
+
+Employment patterns reveal structural transformations in different economies. China’s workforce is shifting away from agriculture, with a growing share of employment in industry and services, signifying industrialization. Uganda’s labor market remains heavily dependent on agriculture, with only slow growth in industry and services, indicating limited economic diversification and the characteristics of countries at the early-stage of industrialization. In contrast, the United States is dominated by the service sector, with minimal employment in agriculture and industry, reflecting the maturity of a developed economy and a pattern of post-industrialized country.
 
 
 ## 3. As Employment in Services Increases, Wage Workers Rise.
+
+As economies shift towards a service-oriented workforce, the question remains: does this growth lead to more stable, wage-based jobs, or does informal and precarious employment persist?
 
 ```{r}
 
@@ -240,6 +242,8 @@ The graph illustrates how increasing employment in the service sector correlates
 
 
 ## 4. Wage Employment vs. Household Consumption Growth
+
+Even if wage employment rises, its economic impact depends on whether higher job stability translates into increased household spending, reinforcing sustainable economic growth.
 
 ```{r}
 library(ggplot2)
